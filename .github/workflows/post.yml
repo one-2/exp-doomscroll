@@ -1,11 +1,6 @@
 name: post
 
 on:
-  schedule:
-    # 08:00-12:00 Australia/Sydney, hourly. GitHub cron is UTC and cannot
-    # follow AEST/AEDT, so this fires on the union of both offsets (21:00-02:00
-    # UTC) and post.py drops the runs that fall outside POST_HOURS locally.
-    - cron: "0 21,22,23,0,1,2 * * *"
   workflow_dispatch:
     inputs:
       feed:
@@ -50,5 +45,5 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          # A hand-run job should post now, not wait for the window.
-          POST_HOURS: ${{ github.event_name == 'schedule' && '8-12' || '' }}
+          # Manual runs should post now, not wait for the daylight window.
+          POST_HOURS: ""
