@@ -22,6 +22,13 @@ def draw(conn, feed: str, size: int = SHELF_SIZE, cooldown: int = READ_COOLDOWN)
     rows = []
     for pool, want in zip(pools, per_pool):
         with conn.cursor() as cur:
+            cur.execute("SELECT count(*) AS n FROM sources WHERE pool = %s", (pool,))
+            pool_size = cur.fetchone()["n"]
+            # A cooldown that excludes more than (pool_size - want) rows can
+            # leave fewer than `want` on the shelf, or none at all. Clamp so
+            # the shelf is always full when the pool is large enough for it,
+            # reusing the most recently read items first if it must.
+            safe_cooldown = min(cooldown, max(pool_size - want, 0))
             cur.execute(
                 """
                 SELECT id, title, teaser FROM sources
@@ -36,7 +43,7 @@ def draw(conn, feed: str, size: int = SHELF_SIZE, cooldown: int = READ_COOLDOWN)
                   )
                 ORDER BY random() LIMIT %s
                 """,
-                (pool, feed, cooldown, want),
+                (pool, feed, safe_cooldown, want),
             )
             rows.extend(cur.fetchall())
     return rows
